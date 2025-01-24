@@ -10,7 +10,6 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import tempfile
 
-
 # Initialize API key variables
 groq_api_key = None
 google_api_key = None
@@ -73,8 +72,8 @@ with st.sidebar:
         )
 
         # Process uploaded PDFs when the button is clicked
-        if uploaded_files:
-            if st.button("Process Documents"):
+        if st.button("Process Documents"):
+            if uploaded_files or os.path.exists("bgcar.pdf"):
                 with st.spinner("Processing documents... Please wait."):
 
                     def vector_embedding(uploaded_files):
@@ -87,22 +86,22 @@ with st.sidebar:
 
                             # Process each uploaded file
                             for uploaded_file in uploaded_files:
-                                # Save the uploaded file temporarily
                                 with tempfile.NamedTemporaryFile(
                                     delete=False, suffix=".pdf"
                                 ) as temp_file:
                                     temp_file.write(uploaded_file.read())
                                     temp_file_path = temp_file.name
 
-                                # Load the PDF document
                                 loader = PyPDFLoader(temp_file_path)
-                                docs = loader.load()  # Load document content
-
-                                # Remove the temporary file
+                                docs = loader.load()
                                 os.remove(temp_file_path)
-
-                                # Add loaded documents to the list
                                 all_docs.extend(docs)
+
+                            # Include bgcar.pdf automatically
+                            bgcar_path = "bgcar.pdf"
+                            if os.path.exists(bgcar_path):
+                                loader = PyPDFLoader(bgcar_path)
+                                all_docs.extend(loader.load())
 
                             # Split documents into manageable chunks
                             text_splitter = RecursiveCharacterTextSplitter(
@@ -117,6 +116,8 @@ with st.sidebar:
 
                     vector_embedding(uploaded_files)
                     st.sidebar.write("Documents processed successfully :partying_face:")
+            else:
+                st.error("Please upload files or ensure bgcar.pdf exists in the directory.")
 
     else:
         st.error("Please enter both API keys to proceed.")
@@ -171,3 +172,5 @@ if human_input := st.chat_input("Ask something about the document"):
         )
         with st.chat_message("assistant"):
             st.markdown(assistant_response)
+
+
